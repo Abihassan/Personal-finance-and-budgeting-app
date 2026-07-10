@@ -1,0 +1,33 @@
+# Node
+node_modules/
+frontend/node_modules/
+
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+.env.*
+frontend/.env
+
+# Expo
+frontend/.expo/
+frontend/dist/
+frontend/web-build/
+
+
+frontend/.env
+backend/.env
+
+.expo/
+dist/
+web-build/
+
+# Build
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db

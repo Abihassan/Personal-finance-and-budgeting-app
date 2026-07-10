@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Sequro",
+    "slug": "sequro",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/sequro.png",
+    "scheme": "sequro",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.sequro.app",
+      "icon": "./assets/images/sequro.png",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Sequro does not use the camera.",
+        "NSPhotoLibraryUsageDescription": "Sequro does not access your photos."
+      }
+    },
+    "android": {
+      "package": "com.sequro.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/sequro.png",
+        "backgroundColor": "#0A0A1A"
+      },
+      "permissions": []
+    },
+    "plugins": [
+      "expo-router",
+
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0A0A1A",
+          "image": "./assets/images/sequro.png",
+          "imageWidth": 180,
+          "resizeMode": "contain"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
