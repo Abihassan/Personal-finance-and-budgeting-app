@@ -7,7 +7,7 @@
     "icon": "./assets/images/sequro.png",
     "scheme": "sequro",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.sequro.app",
@@ -28,7 +28,6 @@
     },
     "plugins": [
       "expo-router",
-
       [
         "expo-splash-screen",
         {
@@ -37,10 +36,17 @@
           "imageWidth": 180,
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "82d073d2-8609-48d3-8538-5691c2023721"
+      }
     }
   }
 }
