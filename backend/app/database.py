@@ -5,7 +5,7 @@ from app.base import Base  # noqa: F401 — re-exported so routers can do: from 
 settings = get_settings()
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    settings.database_url,
     echo=settings.environment == "development",
     pool_size=10,
     max_overflow=20,
