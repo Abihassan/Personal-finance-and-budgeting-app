@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from app.config import get_settings
 from app.database import create_all_tables
 
+# Import routers individually — never via __init__ to avoid circular imports
 from app.routers.auth         import router as auth_router
 from app.routers.accounts     import router as accounts_router
 from app.routers.transactions import router as transactions_router
@@ -46,14 +47,14 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
-# Native mobile apps (Android/iOS) do NOT send an Origin header.
-# allow_origins=["*"] is the only correct setting for a React Native / Expo app.
-# Browser-based CORS restrictions do not apply to native apps at all.
-# This is safe — authentication is handled by JWT Bearer tokens, not cookies.
+# "*" is required for Expo Go on physical devices.
+# In production lock this to your specific domain.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,   # must be False when allow_origins=["*"]
+    allow_origins=[
+        "http://localhost:8080",
+        "https://personal-finance-and-budgeting-app.vercel.app/.app"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -75,6 +76,8 @@ async def health():
 
 
 # ─── Global unhandled error handler ───────────────────────────────────────────
+# HTTPException is handled natively by FastAPI — this only catches truly
+# unexpected exceptions so they get logged and return a helpful message.
 @app.exception_handler(Exception)
 async def global_error(request: Request, exc: Exception):
     logger.exception("Unhandled error on %s %s → %s", request.method, request.url.path, exc)
@@ -82,4 +85,3 @@ async def global_error(request: Request, exc: Exception):
         status_code=500,
         content={"detail": f"Internal server error: {type(exc).__name__}: {exc}"},
     )
-
