@@ -2,20 +2,13 @@ import axios, { InternalAxiosRequestConfig } from 'axios';
 import { TokenService } from '@/auth/token.service';
 
 const BASE_URL =
-  (process.env.EXPO_PUBLIC_API_URL ?? "https://personal-finance-and-budgeting-app.onrender.com").replace(/\/$/, '');
-
-// TEMPORARY DEBUG — remove after confirming the env var loads.
-// Watch Metro terminal output when the app starts.
-// Must print the Railway URL, not localhost:8081.
-if (__DEV__) console.log('[Sequro] BASE_URL =', BASE_URL);
+  (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8081').replace(/\/$/, '');
 
 export { BASE_URL };
 
 export const apiClient = axios.create({
   baseURL: `${BASE_URL}/api`,
-  // 30 seconds — Railway free tier can take up to 20s to wake from hibernation.
-  // The first request after inactivity will be slow; subsequent ones are fast.
-  timeout: 30000,
+  timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -39,7 +32,7 @@ export const registerLogoutHandler = (fn: () => void) => {
 // TOKEN CACHE (IMPORTANT FIX)
 // AsyncStorage is async → we cache tokens in memory
 // ─────────────────────────────────────────────
-export let accessTokenCache: string | null = null;
+let accessTokenCache: string | null = null;
 let refreshTokenCache: string | null = null;
 
 
@@ -58,7 +51,8 @@ apiClient.interceptors.request.use(
     const token = accessTokenCache;
 
     if (token) {
-      config.headers.set('Authorization', `Bearer ${token}`);
+      config.headers = config.headers ?? {};
+      (config.headers as any)['Authorization'] = `Bearer ${token}`;
     }
 
     return config;
@@ -81,7 +75,7 @@ const processQueue = (token: string) => {
 // retry helper
 const retryRequest = (config: any, token: string) => {
   config.headers = config.headers ?? {};
-  config.headers['Authorization'] = `Bearer ${token}`;
+  (config.headers as any)['Authorization'] = `Bearer ${token}`;
   return apiClient(config);
 };
 

@@ -1,3 +1,17 @@
+/**
+ * SplashVideo.tsx
+ *
+ * Plays the splash video fullscreen, then calls onFinish()
+ * so the root layout can hide it and show the real app.
+ *
+ * Behaviour:
+ *  - Video plays once at full screen (no controls, no loop)
+ *  - If video fails to load, falls back to a branded still screen
+ *    after 2 seconds — the app never gets stuck
+ *  - Fades out smoothly when done
+ *  - Automatically finishes if playback ends or after 12s max
+ *    (safety net so a slow device never hangs on splash)
+ */
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   Dimensions,
@@ -5,10 +19,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import {
-  VideoView,
-  useVideoPlayer,
-} from 'expo-video';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,81 +29,47 @@ import Animated, {
 } from 'react-native-reanimated';
 
 const { width: W, height: H } = Dimensions.get('window');
-
-const MAX_DURATION_MS = 12000;
+const MAX_DURATION_MS = 12_000; // safety timeout
 
 interface Props {
   onFinish: () => void;
 }
 
 export function SplashVideo({ onFinish }: Props) {
-  const opacity = useSharedValue(1);
-
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const calledRef = useRef(false);
+  const opacity     = useSharedValue(1);
+  const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const calledRef   = useRef(false);
 
   const fadeOut = useCallback(() => {
     if (calledRef.current) return;
-
     calledRef.current = true;
 
-    timerRef.current && clearTimeout(timerRef.current);
-    errorTimerRef.current && clearTimeout(errorTimerRef.current);
+    if (timerRef.current) clearTimeout(timerRef.current);
 
-    opacity.value = withTiming(
-      0,
-      {
-        duration: 500,
-        easing: Easing.out(Easing.ease),
-      },
-      () => {
-        runOnJS(onFinish)();
-      }
-    );
-  }, [onFinish]);
-
-  const player = useVideoPlayer(
-    require('../assets/images/splash_video.mp4'),
-    player => {
-      player.loop = false;
-      player.muted = false;
-      player.play();
-    }
-  );
+    opacity.value = withTiming(0, { duration: 500, easing: Easing.out(Easing.ease) }, () => {
+      runOnJS(onFinish)();
+    });
+  }, [onFinish, opacity]);
 
   useEffect(() => {
+    // Safety net — never hang longer than MAX_DURATION_MS
     timerRef.current = setTimeout(fadeOut, MAX_DURATION_MS);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [fadeOut]);
 
-    const subscription = player.addListener(
-      'playToEnd',
-      fadeOut
-    );
+  const handlePlaybackStatus = useCallback((status: AVPlaybackStatus) => {
+    if (!status.isLoaded) return;
+    // Fade out as soon as the video reaches its end
+    if (status.didJustFinish) {
+      fadeOut();
+    }
+  }, [fadeOut]);
 
-    const errorSubscription = player.addListener(
-      'statusChange',
-      ({ error }) => {
-        if (error) {
-          errorTimerRef.current = setTimeout(fadeOut, 2000);
-        }
-      }
-    );
-
-    return () => {
-      subscription.remove();
-      errorSubscription.remove();
-
-      timerRef.current && clearTimeout(timerRef.current);
-      errorTimerRef.current && clearTimeout(errorTimerRef.current);
-    };
-  }, [player, fadeOut]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
+  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   return (
     <Animated.View style={[styles.container, animStyle]}>
+      {/* Fallback background — shows behind/before video loads */}
       <View style={styles.fallback}>
         <Image
           source={require('../assets/images/sequro.png')}
@@ -101,11 +78,19 @@ export function SplashVideo({ onFinish }: Props) {
         />
       </View>
 
-      <VideoView
-        player={player}
+      {/* Full-screen video */}
+      <Video
+        source={require('../assets/images/splash_video.mp4')}
         style={styles.video}
-        contentFit="cover"
-        nativeControls={false}
+        resizeMode={ResizeMode.COVER}
+        shouldPlay
+        isLooping={false}
+        isMuted={false}
+        onPlaybackStatusUpdate={handlePlaybackStatus}
+        onError={() => {
+          // Video failed to load — fall back after 2 seconds
+          setTimeout(fadeOut, 2000);
+        }}
       />
     </Animated.View>
   );
@@ -114,26 +99,23 @@ export function SplashVideo({ onFinish }: Props) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 0,
-    left: 0,
+    top: 0, left: 0,
     width: W,
     height: H,
     zIndex: 9999,
     backgroundColor: '#0A0A1A',
   },
-
+  // Fallback still — shows while video is buffering
   fallback: {
     ...StyleSheet.absoluteFill,
     backgroundColor: '#0A0A1A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   fallbackLogo: {
     width: 180,
     height: 180,
   },
-
   video: {
     width: W,
     height: H,
